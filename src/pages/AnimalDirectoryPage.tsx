@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -42,6 +42,8 @@ const chunk = <T,>(arr: T[], size: number): T[][] => {
 
 const AnimalDirectoryPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const navigationState = location.state as { presetHabitat?: string; fromZooMap?: boolean } | null;
 
   // State for filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,6 +54,15 @@ const AnimalDirectoryPage = () => {
   const [viewMode, setViewMode] = useState('grid');
   const [page, setPage] = useState(1);
   const itemsPerPage = 9; // Show 9 animals per page in grid view (3x3)
+
+  // Set initial habitat filter if coming from zoo map
+  useEffect(() => {
+    if (navigationState?.presetHabitat && navigationState.fromZooMap) {
+      setHabitat(navigationState.presetHabitat);
+      // Clear the navigation state to prevent filter from being reapplied on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [navigationState?.presetHabitat]);
 
   // Handle filter changes
   const handleHabitatChange = (event: SelectChangeEvent) => {

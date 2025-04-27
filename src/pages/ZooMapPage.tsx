@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -49,6 +50,20 @@ const mapAreas = [
   { id: 'rp', name: 'Reptile House', animals: 20, facilities: ['Restroom'] },
   { id: 'am', name: 'Amazonian Jungle', animals: 10, facilities: ['Food'] },
 ];
+
+// Function to map zoo area names to habitat types
+const getHabitatFromArea = (areaName: string): string => {
+  const habitatMap: { [key: string]: string } = {
+    'African Savanna': 'Savanna',
+    'Asian Rainforest': 'Rainforest',
+    'Australian Outback': 'Grassland',
+    'Arctic Tundra': 'Tundra',
+    'Aquatic World': 'Island',
+    'Reptile House': 'Forest',
+    'Amazonian Jungle': 'Rainforest'
+  };
+  return habitatMap[areaName] || areaName;
+};
 
 // Facility icons mapping
 const facilityIcons = {
@@ -162,6 +177,7 @@ const PathLine = ({ style }: { style: any }) => {
 
 const ZooMapPage = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
   
   // State
   const [selectedArea, setSelectedArea] = useState<string>('');
@@ -523,6 +539,17 @@ const ZooMapPage = () => {
                     variant="outlined"
                     startIcon={<Pets />}
                     size="small"
+                    onClick={() => {
+                      const area = mapAreas.find(area => area.id === selectedArea);
+                      if (area) {
+                        navigate('/animals', { 
+                          state: { 
+                            presetHabitat: getHabitatFromArea(area.name),
+                            fromZooMap: true 
+                          } 
+                        });
+                      }
+                    }}
                   >
                     View Animals
                   </Button>

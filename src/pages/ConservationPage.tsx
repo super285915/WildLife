@@ -20,9 +20,24 @@ import {
   Avatar,
   Chip,
   useTheme,
-  alpha,
+  alpha,  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormControl,
+  FormLabel,
+  InputAdornment,
+  Alert,
+  MenuItem,
+  Stepper,
+  Step,
+  StepLabel,
 } from '@mui/material';
-import { Public, Forest, Favorite, Park, Pets, Savings } from '@mui/icons-material';
+import { Public, Forest, Favorite, Park, Pets, Savings, Close, Business, Person, Email, Phone, LocationOn } from '@mui/icons-material';
 
 // Sample conservation projects
 const conservationProjects = [
@@ -132,12 +147,550 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
+const DonationDialog = ({ 
+  open, 
+  onClose, 
+  project 
+}: { 
+  open: boolean; 
+  onClose: () => void; 
+  project: typeof conservationProjects[0] | null;
+}) => {
+  const [donationAmount, setDonationAmount] = useState('');
+  const [donationType, setDonationType] = useState('one-time');
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const handleDonationSubmit = () => {
+    // Here you would typically handle the payment processing
+    // For now, we'll just show a success message
+    setShowSuccess(true);
+    setTimeout(() => {
+      setShowSuccess(false);
+      onClose();
+      // Reset form
+      setDonationAmount('');
+      setDonationType('one-time');
+    }, 2000);
+  };
+
+  if (!project) return null;
+
+  return (
+    <Dialog 
+      open={open} 
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 2,
+          position: 'relative'
+        }
+      }}
+    >
+      <DialogTitle sx={{ pb: 1 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h5" component="span" sx={{ fontWeight: 600 }}>
+            Support {project.title}
+          </Typography>
+          <Button
+            onClick={onClose}
+            sx={{ minWidth: 'auto', p: 1 }}
+          >
+            <Close />
+          </Button>
+        </Box>
+      </DialogTitle>
+
+      <DialogContent>
+        {showSuccess ? (
+          <Alert severity="success" sx={{ my: 2 }}>
+            Thank you for your support! Your donation will help make a difference.
+          </Alert>
+        ) : (
+          <>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Your contribution will directly support our conservation efforts for this project.
+            </Typography>
+
+            <FormControl component="fieldset" sx={{ width: '100%', mb: 3 }}>
+              <FormLabel component="legend">Donation Type</FormLabel>
+              <RadioGroup
+                row
+                value={donationType}
+                onChange={(e) => setDonationType(e.target.value)}
+              >
+                <FormControlLabel 
+                  value="one-time" 
+                  control={<Radio />} 
+                  label="One-time" 
+                />
+                <FormControlLabel 
+                  value="monthly" 
+                  control={<Radio />} 
+                  label="Monthly" 
+                />
+              </RadioGroup>
+            </FormControl>
+
+            <FormControl fullWidth sx={{ mb: 3 }}>
+              <FormLabel component="legend">Amount</FormLabel>
+              <TextField
+                value={donationAmount}
+                onChange={(e) => setDonationAmount(e.target.value)}
+                type="number"
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                }}
+                placeholder="Enter amount"
+                sx={{ mt: 1 }}
+              />
+            </FormControl>
+
+            <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
+              {[25, 50, 100, 250].map((amount) => (
+                <Button
+                  key={amount}
+                  variant={donationAmount === amount.toString() ? "contained" : "outlined"}
+                  onClick={() => setDonationAmount(amount.toString())}
+                  sx={{ flex: 1 }}
+                >
+                  ${amount}
+                </Button>
+              ))}
+            </Box>
+
+            <Box sx={{ bgcolor: 'action.hover', p: 2, borderRadius: 1 }}>
+              <Typography variant="body2" gutterBottom>
+                Project Progress
+              </Typography>
+              <LinearProgress
+                variant="determinate"
+                value={(project.currentAmount / project.targetAmount) * 100}
+                sx={{
+                  height: 8,
+                  borderRadius: 4,
+                  mb: 1,
+                  bgcolor: alpha('#4caf50', 0.1),
+                  '& .MuiLinearProgress-bar': {
+                    bgcolor: 'success.main',
+                    borderRadius: 4,
+                  }
+                }}
+              />
+              <Typography variant="caption" color="text.secondary">
+                ${project.currentAmount.toLocaleString()} raised of ${project.targetAmount.toLocaleString()} goal
+              </Typography>
+            </Box>
+          </>
+        )}
+      </DialogContent>
+
+      {!showSuccess && (
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleDonationSubmit}
+            disabled={!donationAmount || parseFloat(donationAmount) <= 0}
+            startIcon={<Favorite />}
+          >
+            Complete Donation
+          </Button>
+        </DialogActions>
+      )}
+    </Dialog>
+  );
+};
+
+const PartnershipDialog = ({ 
+  open, 
+  onClose 
+}: { 
+  open: boolean; 
+  onClose: () => void;
+}) => {
+  const [activeStep, setActiveStep] = useState(0);
+  const [showSuccess, setShowSuccess] = useState(false);
+  
+  // Form states
+  const [formData, setFormData] = useState({
+    type: 'individual',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    organization: '',
+    position: '',
+    address: '',
+    city: '',
+    country: '',
+    partnershipLevel: 'bronze',
+    message: ''
+  });
+
+  const handleInputChange = (field: keyof typeof formData) => (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: event.target.value
+    }));
+  };
+
+  const steps = ['Basic Information', 'Partnership Details', 'Review'];
+
+  const isStepComplete = (step: number) => {
+    switch (step) {
+      case 0:
+        return formData.type === 'individual' 
+          ? (formData.firstName && formData.lastName && formData.email)
+          : (formData.organization && formData.email);
+      case 1:
+        return formData.partnershipLevel && formData.phone && formData.address;
+      default:
+        return true;
+    }
+  };
+
+  const handleNext = () => {
+    if (activeStep === steps.length - 1) {
+      // Submit form
+      handleSubmit();
+    } else {
+      setActiveStep(prev => prev + 1);
+    }
+  };
+
+  const handleBack = () => {
+    setActiveStep(prev => prev - 1);
+  };
+
+  const handleSubmit = () => {
+    // Here you would typically handle the form submission
+    setShowSuccess(true);
+    setTimeout(() => {
+      setShowSuccess(false);
+      onClose();
+      // Reset form
+      setFormData({
+        type: 'individual',
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        organization: '',
+        position: '',
+        address: '',
+        city: '',
+        country: '',
+        partnershipLevel: 'bronze',
+        message: ''
+      });
+      setActiveStep(0);
+    }, 2000);
+  };
+
+  const renderStepContent = (step: number) => {
+    switch (step) {
+      case 0:
+        return (
+          <Box sx={{ mt: 2 }}>
+            <FormControl component="fieldset" sx={{ width: '100%', mb: 3 }}>
+              <FormLabel component="legend">Partner Type</FormLabel>
+              <RadioGroup
+                row
+                value={formData.type}
+                onChange={handleInputChange('type')}
+              >
+                <FormControlLabel 
+                  value="individual" 
+                  control={<Radio />} 
+                  label="Individual" 
+                />
+                <FormControlLabel 
+                  value="organization" 
+                  control={<Radio />} 
+                  label="Organization" 
+                />
+              </RadioGroup>
+            </FormControl>
+
+            {formData.type === 'individual' ? (
+              <>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="First Name"
+                      value={formData.firstName}
+                      onChange={handleInputChange('firstName')}
+                      required
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Last Name"
+                      value={formData.lastName}
+                      onChange={handleInputChange('lastName')}
+                      required
+                    />
+                  </Grid>
+                </Grid>
+              </>
+            ) : (
+              <>
+                <TextField
+                  fullWidth
+                  label="Organization Name"
+                  value={formData.organization}
+                  onChange={handleInputChange('organization')}
+                  required
+                  sx={{ mb: 2 }}
+                />
+                <TextField
+                  fullWidth
+                  label="Your Position"
+                  value={formData.position}
+                  onChange={handleInputChange('position')}
+                  sx={{ mb: 2 }}
+                />
+              </>
+            )}
+
+            <TextField
+              fullWidth
+              label="Email"
+              type="email"
+              value={formData.email}
+              onChange={handleInputChange('email')}
+              required
+              sx={{ mt: 2 }}
+            />
+          </Box>
+        );
+
+      case 1:
+        return (
+          <Box sx={{ mt: 2 }}>
+            <FormControl fullWidth sx={{ mb: 3 }}>
+              <FormLabel component="legend">Partnership Level</FormLabel>
+              <TextField
+                select
+                value={formData.partnershipLevel}
+                onChange={handleInputChange('partnershipLevel')}
+                sx={{ mt: 1 }}
+              >
+                <MenuItem value="bronze">Bronze Partner ($1,000/year)</MenuItem>
+                <MenuItem value="silver">Silver Partner ($5,000/year)</MenuItem>
+                <MenuItem value="gold">Gold Partner ($10,000/year)</MenuItem>
+                <MenuItem value="platinum">Platinum Partner ($25,000/year)</MenuItem>
+              </TextField>
+            </FormControl>
+
+            <TextField
+              fullWidth
+              label="Phone Number"
+              value={formData.phone}
+              onChange={handleInputChange('phone')}
+              required
+              sx={{ mb: 2 }}
+            />
+
+            <TextField
+              fullWidth
+              label="Address"
+              value={formData.address}
+              onChange={handleInputChange('address')}
+              required
+              sx={{ mb: 2 }}
+            />
+
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="City"
+                  value={formData.city}
+                  onChange={handleInputChange('city')}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Country"
+                  value={formData.country}
+                  onChange={handleInputChange('country')}
+                />
+              </Grid>
+            </Grid>
+          </Box>
+        );
+
+      case 2:
+        return (
+          <Box sx={{ mt: 2 }}>
+            <Paper elevation={0} sx={{ p: 3, bgcolor: 'action.hover', borderRadius: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                Partnership Summary
+              </Typography>
+              <List dense>
+                <ListItem>
+                  <ListItemAvatar>
+                    <Avatar sx={{ bgcolor: 'primary.main' }}>
+                      {formData.type === 'individual' ? <Person /> : <Business />}
+                    </Avatar>
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={formData.type === 'individual' 
+                      ? `${formData.firstName} ${formData.lastName}`
+                      : formData.organization}
+                    secondary={formData.type === 'organization' ? formData.position : null}
+                  />
+                </ListItem>
+                <ListItem>
+                  <ListItemAvatar>
+                    <Avatar sx={{ bgcolor: 'primary.main' }}>
+                      <Email />
+                    </Avatar>
+                  </ListItemAvatar>
+                  <ListItemText primary={formData.email} />
+                </ListItem>
+                <ListItem>
+                  <ListItemAvatar>
+                    <Avatar sx={{ bgcolor: 'primary.main' }}>
+                      <Phone />
+                    </Avatar>
+                  </ListItemAvatar>
+                  <ListItemText primary={formData.phone} />
+                </ListItem>
+                <ListItem>
+                  <ListItemAvatar>
+                    <Avatar sx={{ bgcolor: 'primary.main' }}>
+                      <LocationOn />
+                    </Avatar>
+                  </ListItemAvatar>
+                  <ListItemText 
+                    primary={formData.address}
+                    secondary={`${formData.city}${formData.country ? `, ${formData.country}` : ''}`}
+                  />
+                </ListItem>
+              </List>
+              <Box sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Selected Partnership Level:
+                </Typography>
+                <Typography variant="body1" color="primary" sx={{ fontWeight: 600 }}>
+                  {formData.partnershipLevel.charAt(0).toUpperCase() + formData.partnershipLevel.slice(1)} Partner
+                </Typography>
+              </Box>
+            </Paper>
+          </Box>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 2,
+          position: 'relative'
+        }
+      }}
+    >
+      <DialogTitle sx={{ pb: 1 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h5" component="span" sx={{ fontWeight: 600 }}>
+            Become a Conservation Partner
+          </Typography>
+          <Button
+            onClick={onClose}
+            sx={{ minWidth: 'auto', p: 1 }}
+          >
+            <Close />
+          </Button>
+        </Box>
+      </DialogTitle>
+
+      <DialogContent>
+        {showSuccess ? (
+          <Alert severity="success" sx={{ my: 2 }}>
+            Thank you for your interest in becoming a partner! We'll contact you soon to finalize the partnership.
+          </Alert>
+        ) : (
+          <>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              Join our conservation community and help make a lasting impact on wildlife preservation.
+            </Typography>
+
+            <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+              {steps.map((label) => (
+                <Step key={label}>
+                  <StepLabel>{label}</StepLabel>
+                </Step>
+              ))}
+            </Stepper>
+
+            {renderStepContent(activeStep)}
+          </>
+        )}
+      </DialogContent>
+
+      {!showSuccess && (
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button
+            onClick={onClose}
+          >
+            Cancel
+          </Button>
+          <Box sx={{ flex: '1 1 auto' }} />
+          {activeStep > 0 && (
+            <Button
+              onClick={handleBack}
+              sx={{ mr: 1 }}
+            >
+              Back
+            </Button>
+          )}
+          <Button
+            variant="contained"
+            onClick={handleNext}
+            disabled={!isStepComplete(activeStep)}
+          >
+            {activeStep === steps.length - 1 ? 'Submit' : 'Next'}
+          </Button>
+        </DialogActions>
+      )}
+    </Dialog>
+  );
+};
+
 const ConservationPage = () => {
   const theme = useTheme();
   const [tabValue, setTabValue] = useState(0);
+  const [selectedProject, setSelectedProject] = useState<typeof conservationProjects[0] | null>(null);
+  const [donationDialogOpen, setDonationDialogOpen] = useState(false);
+  const [partnershipDialogOpen, setPartnershipDialogOpen] = useState(false);
   
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
+  };
+
+  const handleSupportProject = (project: typeof conservationProjects[0]) => {
+    setSelectedProject(project);
+    setDonationDialogOpen(true);
   };
   
   return (
@@ -438,6 +991,7 @@ const ConservationPage = () => {
                             color="success" 
                             fullWidth
                             startIcon={<Favorite />}
+                            onClick={() => handleSupportProject(project)}
                             sx={{
                               py: 1.5,
                               borderRadius: 2,
@@ -635,6 +1189,7 @@ const ConservationPage = () => {
                       color="primary"
                       fullWidth
                       size="large"
+                      onClick={() => setPartnershipDialogOpen(true)}
                     >
                       Become a Partner
                     </Button>
@@ -694,6 +1249,19 @@ const ConservationPage = () => {
             </Grid>
           </Grid>
         </Box>
+
+        {/* Donation Dialog */}
+        <DonationDialog
+          open={donationDialogOpen}
+          onClose={() => setDonationDialogOpen(false)}
+          project={selectedProject}
+        />
+
+        {/* Partnership Dialog */}
+        <PartnershipDialog
+          open={partnershipDialogOpen}
+          onClose={() => setPartnershipDialogOpen(false)}
+        />
       </Container>
     </Box>
   );
